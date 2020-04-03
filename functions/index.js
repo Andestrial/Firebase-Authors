@@ -20,6 +20,12 @@ async function GetAuthors(Book) {
     console.log('ref: ', ref);
     const Authors = [];
     ref.forEach(doc => {
+        if (!Book) {
+            Authors.push({ id: doc.id,
+                name: doc.data().name,
+                dateOfBirth: doc.data().dateOfBirth,})
+        }
+        else{
         let Docs = {
             id: doc.id,
             name: doc.data().name,
@@ -27,15 +33,13 @@ async function GetAuthors(Book) {
             books: []
         }
         Authors.push(Docs);
-        if (!Book) {
-            return;
-        }
         Book.forEach(el => {
             if (el.author == doc.id) {
                 console.log(el)
                 Docs.books.push(el)
             }
         })
+     }
     })
     return Authors;
 }
@@ -53,7 +57,7 @@ async function GetBooks() {
     return Books
 }
 
-app.post('/createAuthor', async (req, res) => {
+app.post('/create-author', async (req, res) => {
 
     try {
         let ExistAuthor = await Check('Authors', req.body.name)
@@ -79,7 +83,7 @@ app.post('/createAuthor', async (req, res) => {
 
 })
 
-app.get('/getAuthors', async (req, res) => {
+app.get('/get-authors', async (req, res) => {
 
     try {
         let Authors = await GetAuthors()
@@ -90,7 +94,7 @@ app.get('/getAuthors', async (req, res) => {
 
 })
 
-app.get('/authorAndBooks', async (req, res) => {
+app.get('/authors-and-books', async (req, res) => {
     try {
         let AllBooks = await GetBooks();
         console.log('Books: ', AllBooks);
@@ -102,7 +106,7 @@ app.get('/authorAndBooks', async (req, res) => {
     }
 })
 
-app.get("/getAuthor/:id", async (req, res) => {
+app.get("/get-author/:id", async (req, res) => {
 
     try {
         let response = [];
@@ -131,7 +135,7 @@ app.get("/getAuthor/:id", async (req, res) => {
 
 })
 
-app.post('/createBook/:id', async (req, res) => {
+app.post('/create-book/:id', async (req, res) => {
 
     try {
         let ExistBook = await Check("Books", req.body.name)
@@ -153,7 +157,7 @@ app.post('/createBook/:id', async (req, res) => {
 
 })
 
-app.get('/getBooks', async (req, res) => {
+app.get('/get-books', async (req, res) => {
 
     try {
         let AllBooks = await GetBooks()
