@@ -7,39 +7,47 @@ admin.initializeApp(functions.config().firebase);
 const db = admin.firestore();
 app.use(express.json());
 
-async function Check(CollectionName, name) {
+async function Check(CollectionName, names) {
 
-    const checkValue = await db.collection(CollectionName).where("name", "==", name).get();
-    console.log('checkValue.size: ', checkValue.size);
-    return checkValue.size;
+    const checkValue = await db.collection(CollectionName).get();
+    let chekName = '';
+    checkValue.forEach(doc => {
+        let data = doc.data()
+        if (data.name == names) {
+            chekName = doc.data().name;
+        }
+        if(doc.id == names){
+            chekName = doc.id;
+        }
+    })
+    return chekName
 
 }
 
 async function GetAuthors(Book) {
     const ref = await db.collection("Authors").get();
-    console.log('ref: ', ref);
     const Authors = [];
     ref.forEach(doc => {
         if (!Book) {
-            Authors.push({ id: doc.id,
+            Authors.push({
+                id: doc.id,
                 name: doc.data().name,
-                dateOfBirth: doc.data().dateOfBirth,})
-        }
-        else{
-        let Docs = {
-            id: doc.id,
-            name: doc.data().name,
-            dateOfBirth: doc.data().dateOfBirth,
-            books: []
-        }
-        Authors.push(Docs);
-        Book.forEach(el => {
-            if (el.author == doc.id) {
-                console.log(el)
-                Docs.books.push(el)
+                dateOfBirth: doc.data().dateOfBirth,
+            })
+        } else {
+            let Docs = {
+                id: doc.id,
+                name: doc.data().name,
+                dateOfBirth: doc.data().dateOfBirth,
+                books: []
             }
-        })
-     }
+            Authors.push(Docs);
+            Book.forEach(el => {
+                if (el.author == doc.id) {
+                    Docs.books.push(el)
+                }
+            })
+        }
     })
     return Authors;
 }
@@ -60,11 +68,25 @@ async function GetBooks() {
 app.post('/create-author', async (req, res) => {
 
     try {
+        if (!req.body.name || !req.body.birth) {
+            let Error = {
+                Error: "Some of this value is undefined (name, birth)"
+            }
+            throw Error
+        }
+        var count = Object.keys(req.body).length
+        if (count > 2) {
+            let Error = {
+                Error: "Send just name and date of birth"
+            }
+            throw Error
+        }
         let ExistAuthor = await Check('Authors', req.body.name)
-        console.log('ExistAuthor: ', ExistAuthor);
-        if (ExistAuthor > 0) {
-            res.status(400).send("{error : Author alredy exist}")
-            throw "Exsist";
+        if (ExistAuthor == req.body.name) {
+            let err = {
+                error: " Author alredy exist"
+            }
+            throw err
 
         }
 
@@ -78,7 +100,7 @@ app.post('/create-author', async (req, res) => {
             id: NewDoc.id
         });
     } catch (e) {
-        res.status(400).send(`{error : ${e}}`)
+        res.status(400).json(e)
     }
 
 })
@@ -89,7 +111,7 @@ app.get('/get-authors', async (req, res) => {
         let Authors = await GetAuthors()
         res.status(200).send(Authors);
     } catch (e) {
-        res.status(400).send(`{error : ${e}}`)
+        res.status(400).json(e)
     }
 
 })
@@ -97,12 +119,11 @@ app.get('/get-authors', async (req, res) => {
 app.get('/authors-and-books', async (req, res) => {
     try {
         let AllBooks = await GetBooks();
-        console.log('Books: ', AllBooks);
         let Authors = await GetAuthors(AllBooks)
 
         res.status(200).send(Authors)
     } catch (e) {
-        res.status(400).send(`{e : ${e}}`)
+        res.status(400).json(e)
     }
 })
 
@@ -121,7 +142,6 @@ app.get("/get-author/:id", async (req, res) => {
         response.push(Docs)
         let books = await db.collection('Books').where("author", '==', id.toString()).get();
         await books.forEach(el => {
-            console.log(el.data())
             Docs.books.push({
                 id: el.id,
                 name: el.data().name,
@@ -130,7 +150,7 @@ app.get("/get-author/:id", async (req, res) => {
         })
         res.status(200).send(response)
     } catch (e) {
-        res.status(400).send(`{error :${e}}`)
+        res.status(400).json(e)
     }
 
 })
@@ -138,10 +158,35 @@ app.get("/get-author/:id", async (req, res) => {
 app.post('/create-book/:id', async (req, res) => {
 
     try {
+        if (!req.body.name) {
+            let Error = {
+                Error: "Some of this value is undefined (name)"
+            }
+            throw Error
+        }
+        let count = Object.keys(req.body).length
+        if (count > 1) {
+            let Error = {
+                Error: "Send just (name)"
+            }
+            
+            throw Error
+        }
+        let CheckAuthor = await Check('Authors', req.params.id)
+        if (CheckAuthor != req.params.id) {
+            let Error = {
+                Error: "Author isn`t exist"
+            }
+           
+            throw Error
+        }
         let ExistBook = await Check("Books", req.body.name)
-        if (ExistBook > 0) {
-            res.status(400).send(`{error :  Book alredy exist }`)
-            throw new Error();
+        if (ExistBook == req.body.name) {
+            let Error = {
+                Error: 'Book alredy exsist'
+            }
+          
+            throw Error
         }
         let Book = {
             name: req.body.name,
@@ -152,7 +197,7 @@ app.post('/create-book/:id', async (req, res) => {
             id: newList.id
         });
     } catch (e) {
-        res.status(400).send(`{error : ${e}}`)
+        res.status(400).json(e)
     }
 
 })
@@ -163,7 +208,7 @@ app.get('/get-books', async (req, res) => {
         let AllBooks = await GetBooks()
         res.status(200).send(AllBooks);
     } catch (e) {
-        res.status(400).send(`{error : ${e}}`)
+        res.status(400).json(e)
     }
 
 })
