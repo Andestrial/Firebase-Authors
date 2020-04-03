@@ -16,7 +16,7 @@ async function Check(CollectionName, names) {
         if (data.name == names) {
             chekName = doc.data().name;
         }
-        if(doc.id == names){
+        if (doc.id == names) {
             chekName = doc.id;
         }
     })
@@ -169,7 +169,7 @@ app.post('/create-book/:id', async (req, res) => {
             let Error = {
                 Error: "Send just (name)"
             }
-            
+
             throw Error
         }
         let CheckAuthor = await Check('Authors', req.params.id)
@@ -177,7 +177,7 @@ app.post('/create-book/:id', async (req, res) => {
             let Error = {
                 Error: "Author isn`t exist"
             }
-           
+
             throw Error
         }
         let ExistBook = await Check("Books", req.body.name)
@@ -185,7 +185,7 @@ app.post('/create-book/:id', async (req, res) => {
             let Error = {
                 Error: 'Book alredy exsist'
             }
-          
+
             throw Error
         }
         let Book = {
